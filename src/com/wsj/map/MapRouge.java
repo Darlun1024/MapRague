@@ -7,5 +7,5 @@ public class MapRouge {
 		TileDownloader downloader = new TileDownloader();
 		downloader.download("img_w", 1, 18, new LatLng(39.929626,116.391585), new LatLng(39.918809,116.415013));
 	}
-
+	
 }
