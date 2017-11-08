@@ -4,8 +4,6 @@ import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Transparency;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -14,24 +12,19 @@ import java.net.URLConnection;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import javax.imageio.ImageIO;
-import javax.imageio.stream.ImageOutputStream;
-
-import com.wsj.map.storage.FileStorage;
+import com.wsj.map.projection.IProjection;
+import com.wsj.map.projection.ProjMercator;
 import com.wsj.map.storage.IStorage;
-import com.sun.org.apache.xml.internal.resolver.helpers.PublicId;
-import com.wsj.map.storage.DatabaseStorage;
 
 public class TileDownloader {
 	private static final int TILE_SIZE = 256;
-	private static String ROOT_URL = "http://t2.tianditu.com/DataServer?T=cva_w&x={x}&y={y}&l={z}";
 	ExecutorService mExecutor = Executors.newFixedThreadPool(10);
 	private IStorage mStorage;
 	private String mURLTemplete;
 	private LatLngBounds mBounds;
-	private int mMaxLevel, mMinLevel;
+	private int mMaxZoom, mMinZoom;
 	private boolean isCreateBlankTile = false; // 是否在周围生成透明瓦片，mapbox需要
-
+	private IProjection mProjection = new ProjMercator();
 	public static class Builder {
 		private TileDownloader downloader;
 
@@ -55,17 +48,22 @@ public class TileDownloader {
 		}
 
 		public Builder setMaxLevel(int max) {
-			downloader.mMaxLevel = max;
+			downloader.mMaxZoom = max;
 			return this;
 		}
 
 		public Builder setMinLevel(int min) {
-			downloader.mMinLevel = min;
+			downloader.mMinZoom = min;
 			return this;
 		}
 
 		public Builder createBlankTile(boolean isCreate) {
 			downloader.isCreateBlankTile = isCreate;
+			return this;
+		}
+		
+		public Builder setProjection(IProjection projection) {
+			downloader.mProjection = projection;
 			return this;
 		}
 
@@ -87,9 +85,9 @@ public class TileDownloader {
 	}
 
 	public void startDownload() {
-		for (int zoom = mMinLevel; zoom <= mMaxLevel; zoom++) {
-			Point minXY = ProjMercator.deg2num(mBounds.top, mBounds.left, zoom);
-			Point maxXY = ProjMercator.deg2num(mBounds.bottom, mBounds.right, zoom);
+		for (int zoom = mMinZoom; zoom <= mMaxZoom; zoom++) {
+			Point minXY = mProjection.deg2num(mBounds.top, mBounds.left, zoom);
+			Point maxXY = mProjection.deg2num(mBounds.bottom, mBounds.right, zoom);
 			for (int x = minXY.x; x <= maxXY.x; x++) {
 				for (int y = minXY.y; y <= maxXY.y; y++) {
 					Tile tile = new Tile(x, y, zoom);
