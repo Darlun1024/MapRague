@@ -9,12 +9,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.imageio.ImageIO;
 import javax.imageio.stream.ImageOutputStream;
 
 import com.wsj.map.DataBase;
+import com.wsj.map.LatLngBounds;
 import com.wsj.map.Tile;
 
 public class DatabaseStorage implements IStorage{
@@ -30,16 +32,54 @@ public class DatabaseStorage implements IStorage{
 		void onError();
 	}
 
-
+/**
+ * 保存离线地图信息
+ * @param bounds
+ * @param minLevel
+ * @param maxLevel
+ */
+	public void saveMapInfo(LatLngBounds bounds,double minLevel,double maxLevel){
+		String sql = "INSERT OR REPLACE INTO metadata VALUES ('minLevel',"+minLevel+"),('maxLevel',"+maxLevel+")"
+				+ ",('left',"+bounds.left+"),('top',"+bounds.top+"),('right',"+bounds.right+"),('bottom',"+bounds.bottom+")";
+		try {
+			Statement pstmt = mDataBase.getConnection().createStatement();
+			pstmt.execute(sql);
+			pstmt.close();
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+			e.printStackTrace();
+		}
+	}
 	
+	/**
+	 * 保存每个级别的数据
+	 * @param level
+	 * @param minx
+	 * @param maxx
+	 * @param miny
+	 * @param maxy
+	 */
+	public void saveLevelInfo(int level,int minx,int maxx,int miny,int maxy){
+		String sql = "INSERT OR REPLACE INTO level_info(level,minX,minY,maxX,maxY)VALUES("+level+","+minx+","+miny+","+maxx+","+maxy+")";
+		Statement pstmt;
+		try {
+			pstmt = mDataBase.getConnection().createStatement();
+			pstmt.execute(sql);
+			pstmt.close();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}	
 	
 	@Override
 	public void save(Tile tile, InputStream in) {
 		storageInTable(tile, bufferInputStream(in));
 	}
 	
+	
 	private void storageInTable(Tile tile,InputStream in){
-		String strSQL = "INSERT INTO tiles(zoom_level,tile_column,tile_row,tile_data) VALUES(?,?,?,?)";
+		String strSQL = "INSERT OR IGNORE INTO tiles(zoom_level,tile_column,tile_row,tile_data) VALUES(?,?,?,?)";
 		PreparedStatement pstmt = null;
 		mLock.lock();
 		try {

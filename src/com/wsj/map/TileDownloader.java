@@ -14,6 +14,7 @@ import java.util.concurrent.Executors;
 
 import com.wsj.map.projection.IProjection;
 import com.wsj.map.projection.ProjMercator;
+import com.wsj.map.storage.DatabaseStorage;
 import com.wsj.map.storage.IStorage;
 
 public class TileDownloader {
@@ -85,22 +86,28 @@ public class TileDownloader {
 	}
 
 	public void startDownload() {
+		if(mStorage instanceof DatabaseStorage){
+			((DatabaseStorage) mStorage).saveMapInfo(mBounds, mMinZoom, mMaxZoom);
+		}
 		for (int zoom = mMinZoom; zoom <= mMaxZoom; zoom++) {
 			Point minXY = mProjection.deg2num(mBounds.top, mBounds.left, zoom);
 			Point maxXY = mProjection.deg2num(mBounds.bottom, mBounds.right, zoom);
-			for (int x = minXY.x; x <= maxXY.x; x++) {
-				for (int y = minXY.y; y <= maxXY.y; y++) {
+			int minX = minXY.x;
+			int minY = minXY.y;
+			int maxX = maxXY.x;
+			int maxY = maxXY.y;
+			for (int x = minX; x <=maxX; x++) {
+				for (int y = minY; y <= maxY; y++) {
 					Tile tile = new Tile(x, y, zoom);
 					DownloadRunnable runnable = new DownloadRunnable(tile);
 					mExecutor.execute(runnable);
 				}
 			}
 			if (isCreateBlankTile) {
-				if (minXY.x > 0) {
-					int minX = minXY.x - 1;
-					int maxX = maxXY.x + 1;
-					int minY = minXY.y - 1;
-					int maxY = maxXY.y + 1;
+					 minX -= 1;
+					 maxX += 1;
+					 minY -= 1;
+					 maxY += 1;
 					for (int x = minX; x <= maxX; x++) {
 						generateEmptyImage(new Tile(x, minY, zoom));
 						generateEmptyImage(new Tile(x, maxY, zoom));
@@ -109,7 +116,9 @@ public class TileDownloader {
 						generateEmptyImage(new Tile(minX, y, zoom));
 						generateEmptyImage(new Tile(maxX, y, zoom));
 					}
-				}
+			}
+			if(mStorage instanceof DatabaseStorage){
+				((DatabaseStorage) mStorage).saveLevelInfo(zoom, minX, maxX, minY, maxY);
 			}
 		}
 	}

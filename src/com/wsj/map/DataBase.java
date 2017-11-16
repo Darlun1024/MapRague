@@ -29,12 +29,10 @@ public class DataBase {
 			connection = DriverManager.getConnection("jdbc:sqlite:" + dbpath);
 	        statement = connection.createStatement();
 	        statement.setQueryTimeout(30);  // set timeout to 30 sec.
-	        statement.executeUpdate("create table if not exists metadata (name string, value string)");
-	        
-	        statement.executeUpdate("create table if not exists tab_about (type string, data blob)");
-	        
+	        statement.executeUpdate("create table if not exists metadata (key text, value text,PRIMARY KEY('key'))");
+	        statement.executeUpdate("CREATE TABLE if not exists level_info (level integer NOT NULL,minX integer,minY integer,maxX integer,maxY integer,PRIMARY KEY('level'))");
 	        statement.executeUpdate("create table if not exists tiles (zoom_level integer, tile_column integer, "
-	        		+ "tile_row integer, tile_data blob)");
+	        		+ "tile_row integer, tile_data blob,PRIMARY KEY('zoom_level','tile_column','tile_row'))");
 	        
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
