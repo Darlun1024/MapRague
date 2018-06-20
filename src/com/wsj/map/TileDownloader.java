@@ -4,18 +4,29 @@ import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Transparency;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLConnection;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
+import com.sun.jna.platform.FileUtils;
 import com.wsj.map.projection.IProjection;
 import com.wsj.map.projection.ProjMercator;
 import com.wsj.map.storage.DatabaseStorage;
 import com.wsj.map.storage.IStorage;
+
+import org.apache.http.HttpEntity;
+import org.apache.http.client.*;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.HttpClients;
 
 public class TileDownloader {
 	private static final int TILE_SIZE = 256;
@@ -25,7 +36,15 @@ public class TileDownloader {
 	private LatLngBounds mBounds;
 	private int mMaxZoom, mMinZoom;
 	private boolean isCreateBlankTile = false; // 是否在周围生成透明瓦片，mapbox需要
+	private DownloadCallback mCallback;
 	private IProjection mProjection = new ProjMercator();
+
+	public static interface DownloadCallback{
+		public void downloadStart();
+		public void downloadFinished();
+		public void downloadError();
+	}
+	
 	public static class Builder {
 		private TileDownloader downloader;
 
@@ -62,9 +81,14 @@ public class TileDownloader {
 			downloader.isCreateBlankTile = isCreate;
 			return this;
 		}
-		
+
 		public Builder setProjection(IProjection projection) {
 			downloader.mProjection = projection;
+			return this;
+		}
+		
+		public Builder setCallback(DownloadCallback callback) {
+			downloader.mCallback = callback;
 			return this;
 		}
 
@@ -79,6 +103,7 @@ public class TileDownloader {
 	}
 
 	private TileDownloader() {
+		
 	}
 
 	public void download(String mapType, int minZoom, int maxZoom, LatLng topLeft, LatLng bottomRight) {
@@ -86,7 +111,7 @@ public class TileDownloader {
 	}
 
 	public void startDownload() {
-		if(mStorage instanceof DatabaseStorage){
+		if (mStorage instanceof DatabaseStorage) {
 			((DatabaseStorage) mStorage).saveMapInfo(mBounds, mMinZoom, mMaxZoom);
 		}
 		for (int zoom = mMinZoom; zoom <= mMaxZoom; zoom++) {
@@ -96,7 +121,7 @@ public class TileDownloader {
 			int minY = minXY.y;
 			int maxX = maxXY.x;
 			int maxY = maxXY.y;
-			for (int x = minX; x <=maxX; x++) {
+			for (int x = minX; x <= maxX; x++) {
 				for (int y = minY; y <= maxY; y++) {
 					Tile tile = new Tile(x, y, zoom);
 					DownloadRunnable runnable = new DownloadRunnable(tile);
@@ -104,22 +129,42 @@ public class TileDownloader {
 				}
 			}
 			if (isCreateBlankTile) {
-					 minX -= 1;
-					 maxX += 1;
-					 minY -= 1;
-					 maxY += 1;
-					for (int x = minX; x <= maxX; x++) {
-						generateEmptyImage(new Tile(x, minY, zoom));
-						generateEmptyImage(new Tile(x, maxY, zoom));
-					}
-					for (int y = minY; y <= maxY; y++) {
-						generateEmptyImage(new Tile(minX, y, zoom));
-						generateEmptyImage(new Tile(maxX, y, zoom));
-					}
+				minX -= 1;
+				maxX += 1;
+				minY -= 1;
+				maxY += 1;
+				for (int x = minX; x <= maxX; x++) {
+					generateEmptyImage(new Tile(x, minY, zoom));
+					generateEmptyImage(new Tile(x, maxY, zoom));
+				}
+				for (int y = minY; y <= maxY; y++) {
+					generateEmptyImage(new Tile(minX, y, zoom));
+					generateEmptyImage(new Tile(maxX, y, zoom));
+				}
 			}
-			if(mStorage instanceof DatabaseStorage){
+			if (mStorage instanceof DatabaseStorage) {
 				((DatabaseStorage) mStorage).saveLevelInfo(zoom, minX, maxX, minY, maxY);
 			}
+		}
+		mExecutor.shutdown();
+		try {
+			mExecutor.awaitTermination(10, TimeUnit.SECONDS);
+			Boolean isShutDown = false;
+			while(!isShutDown) {
+				isShutDown = mExecutor.isShutdown();
+				if(isShutDown) {
+					if(mCallback!=null) {
+						System.out.println("finish download"+mURLTemplete);
+						mCallback.downloadFinished();
+					}
+					
+					break;
+				}
+				Thread.sleep(1000);
+			}
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 
@@ -138,10 +183,48 @@ public class TileDownloader {
 				String urlString = mURLTemplete.replace("{x}", mTile.x + "").replace("{y}", mTile.y + "").replace("{z}",
 						mTile.z + "");
 				url = new URL(urlString);
-				URLConnection connection = url.openConnection();
-				InputStream is = connection.getInputStream();
-				mStorage.save(mTile, is);
-				System.out.println(url);
+//				HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+
+				// connection.setRequestMethod("GET");
+				// connection.setRequestProperty("connection", "Keep-Alive");
+				// connection.setRequestProperty("user-agent", "Mozilla/5.0
+				// (Macintosh; Intel Mac OS X 10_13_1) AppleWebKit/537.36
+				// (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36");
+				// if (connection.getResponseCode() == 200) {
+				// System.out.println(connection.getContentLength());
+				//
+				//// System.out.println(url);
+				//// long length = connection.getContentLengthLong();
+				//// System.out.println("length:"+length);
+				//// InputStream is = connection.getInputStream();
+				//// mStorage.save(mTile, is);
+				// }
+				
+
+			    CloseableHttpClient httpClient = HttpClients.createDefault();
+			    HttpGet httpGet = new HttpGet(urlString);
+			    RequestConfig config = RequestConfig.custom().setSocketTimeout(100000).setConnectTimeout(100000).build();
+			    httpGet.setConfig(config);
+			    httpGet.addHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:34.0) Gecko/20100101 Firefox/34.0");
+			    try {
+			        CloseableHttpResponse httpResponse = httpClient.execute(httpGet);
+			        HttpEntity fileEntity = httpResponse.getEntity();
+			        int code = httpResponse.getStatusLine().getStatusCode();
+			        if(code!=200) {
+			        	 System.out.println("miss:"+urlString);
+			        		return;
+			        }
+			        System.out.println("download:"+urlString);
+			        if (fileEntity != null) {
+						mStorage.save(mTile, fileEntity.getContent());
+			        }
+			    } catch (IOException e) {
+			    	
+			    }
+
+			    httpGet.releaseConnection();
+
+
 			} catch (MalformedURLException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

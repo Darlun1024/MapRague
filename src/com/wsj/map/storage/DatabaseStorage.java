@@ -21,10 +21,10 @@ import com.wsj.map.Tile;
 
 public class DatabaseStorage implements IStorage{
 	DataBase mDataBase;
-	private static ReentrantLock mLock = new ReentrantLock();
+	private  ReentrantLock mLock = new ReentrantLock();
 
 	public DatabaseStorage(String dbPath) {
-		mDataBase = DataBase.getInstance(dbPath);
+		mDataBase = new DataBase(dbPath);
 	}
 
 	public interface StatusLinsenter {
@@ -106,6 +106,7 @@ public class DatabaseStorage implements IStorage{
 			try {
 				if(pstmt!=null)
 					pstmt.close();
+				in.close();
 			} catch (Exception ex) {
 
 			}

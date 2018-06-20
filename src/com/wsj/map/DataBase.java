@@ -23,7 +23,7 @@ public class DataBase {
 		return singleDataBase;
 	}
 	
-	private DataBase(String dbpath){
+	public DataBase(String dbpath){
 		 // create a database connection
         try {
 			connection = DriverManager.getConnection("jdbc:sqlite:" + dbpath);

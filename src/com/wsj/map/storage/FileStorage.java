@@ -13,13 +13,19 @@ import com.wsj.map.Tile;
 
 public class FileStorage implements IStorage{
 	private String mSavePath;
+	private String mExt = "png";
 	public FileStorage(String savePath){
 		mSavePath = savePath;
 	}
 	
+	public FileStorage(String savePath,String ext){
+		mSavePath = savePath;
+		mExt = ext;
+	}
+	
 	@Override
 	public void save(Tile tile,InputStream in){
-		String path = String.format(mSavePath+"%d_%d_%d.png", tile.z,tile.x,tile.y);
+		String path = String.format(mSavePath+"%d_%d_%d.%s", tile.z,tile.x,tile.y,mExt);
 		File file = new File(path);
 		if(!file.exists())
 			try {
@@ -34,6 +40,7 @@ public class FileStorage implements IStorage{
 				}
 				fos.close();
 				bis.close();
+				in.close();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
