@@ -29,51 +29,6 @@ public class MapRouge {
 		//// .setBounds(new LatLngBounds(116.5, 39.1, 116.6, 39.2))
 		// .create();
 		// downloader.startDownload();
-		/** download tdt vector tiles */
-		// DownloadUrl[] downloadArray = {
-		// new
-		// DownloadUrl("http://vectortile.geo-compass.com/api/v1/tilesets/superadmin/china_POI_2/{z}/{x}/{y}.pbf","/Users/gxsn/Work/tdt/china_poi_2.db"),
-		// new
-		// DownloadUrl("http://vectortile.geo-compass.com/api/v1/tilesets/superadmin/china_other/{z}/{x}/{y}.pbf","/Users/gxsn/Work/tdt/china_other.db"),
-		// new
-		// DownloadUrl("http://vectortile.geo-compass.com/api/v1/tilesets/superadmin/china_LRDL/{z}/{x}/{y}.pbf","/Users/gxsn/Work/tdt/china_lrdl.db"),
-		// new
-		// DownloadUrl("http://vectortile.geo-compass.com/api/v1/tilesets/superadmin/china_JIEDAO/{z}/{x}/{y}.pbf","/Users/gxsn/Work/tdt/china_jiedao.db"),
-		// new
-		// DownloadUrl("http://vectortile.geo-compass.com/api/v1/tilesets/superadmin/china_SUBL/{z}/{x}/{y}.pbf","/Users/gxsn/Work/tdt/china_sbul.db"),
-		// new
-		// DownloadUrl("http://vectortile.geo-compass.com/api/v1/tilesets/superadmin/china_1-10/{z}/{x}/{y}.pbf","/Users/gxsn/Work/tdt/china_1_10.db"),
-		// };
-		// int downloadIndex = 5;
-		// TileDownloader downloader = new TileDownloader.Builder()
-		// .setURLTemplet(downloadArray[downloadIndex].url)
-		// .setMaxLevel(14)
-		// .setMinLevel(1)
-		// .setStorage(new DatabaseStorage(downloadArray[downloadIndex].path))
-		// .setProjection(new ProjMercator())
-		// .createBlankTile(false)
-		// .setBounds(new LatLngBounds(115, 41, 117, 39))
-		//// .setBounds(new LatLngBounds(116.5, 39.1, 116.6, 39.2))
-		// .create();
-		// downloader.startDownload();
-
-		/** download mapbox data */
-
-//		MapBoxDataDownloader downloadler = new MapBoxDataDownloader.Builder()
-//				.setBounds(new LatLngBounds(118.13, 32.04, 118.89, 31.97)).setLocalPath("/Users/gxsn/Work/tdt/nj/")
-//				.setMaxLevel(16).setMinLevel(1)
-//				.setStyleUrl(
-//						"http://vectortile.geo-compass.com/api/v1/styles/xjl/BJe4UiYajf/publish?access_key=7c611870843304ad94ce4df5afed4d5f")
-//				.create();
-//		downloadler.startDownLoad();
-		// MapBoxDataDownloader downloadler = new MapBoxDataDownloader.Builder()
-		// .setBounds(new LatLngBounds(118.13, 32.04, 118.89, 31.97))
-		// .setLocalPath("/Users/gxsn/Work/tdt/qhq/")
-		// .setMaxLevel(14)
-		// .setMinLevel(1)
-		// .setStyleUrl("http://vectortile.geo-compass.com/api/v1/styles/xjl/BJl28rSP5z/publish?access_key=7c611870843304ad94ce4df5afed4d5f")
-		// .create();
-		// downloadler.startDownLoad();
 	}
 
 	static class DownloadUrl {
